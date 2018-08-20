@@ -1,0 +1,6 @@
+[package]
+name = "rust-lsm"
+version = "0.1.0"
+authors = ["Dillon George <dillon.thorsteinn@gmail.com>"]
+
+[dependencies]
