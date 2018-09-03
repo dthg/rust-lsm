@@ -1,5 +1,10 @@
 #[cfg(test)]
 extern crate tempfile;
+extern crate byteorder;
+
+#[macro_use]
+extern crate enum_primitive_derive;
+extern crate num_traits;
 
 pub mod errors;
 pub mod db;
