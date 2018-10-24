@@ -1,9 +1,10 @@
-use std::io::Cursor;
+use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
+use std::io::prelude::*;
 
 use errors::Error;
 
-use byteorder::{LittleEndian, ReadBytesExt};//, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use num_traits::FromPrimitive;
 
 /// User tokio aio to do file writing
@@ -69,7 +70,7 @@ impl WalFile {
 }
 
 /// Indicates the type of the payload stored in a WalSegment.
-#[derive(Debug, PartialEq, Primitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Primitive)]
 #[repr(u8)]
 enum SegmentType {
     /// First segment in a multi segment record.
@@ -112,10 +113,16 @@ impl WalSegment {
     const MAX_BLOCK_SIZE: usize = 32_000;
 
     /// Compute the on-disk representation of the WalSegment
-    pub fn disk_repr(&self) -> Vec<u8> {
+    pub fn disk_repr(&self) -> Result<Vec<u8>, Error> {
         // Use bytes crate for this
         // <-- Op: u8 --><-- Length: u16 --><-- Payload --><-- Padding -->
-        unimplemented!("Disk writes for wal segment not yet implemented");
+        let mut wtr = vec![];
+        wtr.write_u8(self.segment_type as u8).unwrap();
+        wtr.write_u16::<LittleEndian>(self.payload.len() as u16).unwrap();
+        wtr.write_all(&self.payload).unwrap();
+        wtr.write_all(&self.padding).unwrap();
+
+        Ok(wtr)
     }
 
     /// TODO: Implement proper error handling
@@ -186,5 +193,30 @@ mod tests {
         assert_eq!(seg.segment_type, SegmentType::FullSegment);
         assert_eq!(seg.padding, padding);
         assert_eq!(seg.payload, payload);
+    }
+
+    #[test]
+    fn wal_segment_to_disk_repr() {
+        let padding_len =  WalSegment::MAX_BLOCK_SIZE - (3 + 6) as usize;
+        let wal = WalSegment {
+            segment_type: SegmentType::FullSegment,
+            payload: b"WALL-E".to_vec(),
+            padding: vec![0; padding_len],
+        };
+
+        let disk_repr = wal.disk_repr().unwrap();
+        let str_repr = String::from_utf8(disk_repr.clone()).unwrap();
+        assert_eq!(disk_repr.len(), WalSegment::MAX_BLOCK_SIZE);
+
+        let mut expected: Vec<u8> = vec![];
+        expected.write_u8(SegmentType::FullSegment as u8).unwrap();
+        expected.write_u16::<LittleEndian>(wal.payload.len() as u16).unwrap();
+        expected.write_all(&wal.payload).unwrap();
+
+//        let expected: &[u8] = vec![wal.segment_type as u8, wal.payload.len() as u166u8,0u8,87u8,65u8,76u8,76u8,45u8,69u8];
+        assert_eq!(&disk_repr[0..(3 + wal.payload.len())], &expected as &[u8]);
+
+        let expected_padding: &[u8] =  &vec![0u8; padding_len];
+        assert_eq!(&disk_repr[(3+ wal.payload.len())..disk_repr.len()], expected_padding);
     }
 }
