@@ -6,7 +6,6 @@ pub struct DB;
 #[derive(Debug)]
 pub struct DBInfo;
 
-
 impl DB {
     /// Open or creat a data base at the specified location
     pub fn new<P: AsRef<Path>>(p: P) -> Result<DB, Error> {
