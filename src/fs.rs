@@ -1,11 +1,12 @@
+use std::io::prelude::*;
 use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
-use std::io::prelude::*;
 
 use errors::Error;
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use num_traits::FromPrimitive;
+
 
 /// User tokio aio to do file writing
 /// Will mean that this is Linux only for now but fine for _now_
@@ -118,7 +119,8 @@ impl WalSegment {
         // <-- Op: u8 --><-- Length: u16 --><-- Payload --><-- Padding -->
         let mut wtr = vec![];
         wtr.write_u8(self.segment_type as u8).unwrap();
-        wtr.write_u16::<LittleEndian>(self.payload.len() as u16).unwrap();
+        wtr.write_u16::<LittleEndian>(self.payload.len() as u16)
+            .unwrap();
         wtr.write_all(&self.payload).unwrap();
         wtr.write_all(&self.padding).unwrap();
 
@@ -152,12 +154,20 @@ impl WalSegment {
 mod tests {
     use super::*;
 
-    use std::mem;
     use std::fs::File;
+
+    use std::mem;
     use std::os::unix::prelude::FileExt;
 
     use byteorder::WriteBytesExt;
     use tempfile::tempdir;
+    use tokio_io::io;
+    use tokio_threadpool::Builder;
+    use tokio_fs::File as TokioFile;
+
+    use futures::future::poll_fn;
+    use futures::sync::oneshot;
+    use futures::{Future, Sink, Stream};
 
     #[test]
     fn file_write() {
@@ -197,7 +207,7 @@ mod tests {
 
     #[test]
     fn wal_segment_to_disk_repr() {
-        let padding_len =  WalSegment::MAX_BLOCK_SIZE - (3 + 6) as usize;
+        let padding_len = WalSegment::MAX_BLOCK_SIZE - (3 + 6) as usize;
         let wal = WalSegment {
             segment_type: SegmentType::FullSegment,
             payload: b"WALL-E".to_vec(),
@@ -210,13 +220,53 @@ mod tests {
 
         let mut expected: Vec<u8> = vec![];
         expected.write_u8(SegmentType::FullSegment as u8).unwrap();
-        expected.write_u16::<LittleEndian>(wal.payload.len() as u16).unwrap();
+        expected
+            .write_u16::<LittleEndian>(wal.payload.len() as u16)
+            .unwrap();
         expected.write_all(&wal.payload).unwrap();
 
-//        let expected: &[u8] = vec![wal.segment_type as u8, wal.payload.len() as u166u8,0u8,87u8,65u8,76u8,76u8,45u8,69u8];
+        //        let expected: &[u8] = vec![wal.segment_type as u8, wal.payload.len() as u166u8,0u8,87u8,65u8,76u8,76u8,45u8,69u8];
         assert_eq!(&disk_repr[0..(3 + wal.payload.len())], &expected as &[u8]);
 
-        let expected_padding: &[u8] =  &vec![0u8; padding_len];
-        assert_eq!(&disk_repr[(3+ wal.payload.len())..disk_repr.len()], expected_padding);
+        let expected_padding: &[u8] = &vec![0u8; padding_len];
+        assert_eq!(
+            &disk_repr[(3 + wal.payload.len())..disk_repr.len()],
+            expected_padding
+        );
+    }
+
+    #[test]
+    fn fs_write() {
+        let pool = Builder::new().pool_size(1).build();
+        let (tx, rx) = oneshot::channel();
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("wal.log");
+        let contents = b"hello world";
+        println!("path is {:?}", path);
+
+        pool.spawn({
+            let path = path.clone();
+            let contents = contents.clone();
+            TokioFile::create(path)
+                .and_then(|file| file.metadata())
+                .inspect(|&(_, ref metadata)| assert!(metadata.is_file()))
+                .and_then(move |(file, _)| io::write_all(file, contents))
+                .and_then(|(mut file, _)| poll_fn(move || file.poll_sync_all()))
+                .then(|res| {
+                    let _ = res.unwrap();
+                    tx.send(()).unwrap();
+                    Ok(())
+                })
+        });
+
+        rx.wait().unwrap();
+
+        let mut file = File::open(&path).unwrap();
+        let mut dst = vec![];
+        file.read_to_end(&mut dst).unwrap();
+        assert_eq!(dst, contents);
+
+        println!("At the end....");
     }
 }
