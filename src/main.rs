@@ -1,6 +1,11 @@
 extern crate byteorder;
+extern crate futures;
 #[cfg(test)]
 extern crate tempfile;
+extern crate tokio;
+extern crate tokio_fs;
+extern crate tokio_io;
+extern crate tokio_threadpool;
 
 #[macro_use]
 extern crate enum_primitive_derive;

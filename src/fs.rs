@@ -7,6 +7,7 @@ use errors::Error;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use num_traits::FromPrimitive;
 
+
 /// User tokio aio to do file writing
 /// Will mean that this is Linux only for now but fine for _now_
 
@@ -161,6 +162,13 @@ mod tests {
 
     use byteorder::WriteBytesExt;
     use tempfile::tempdir;
+    use tokio_io::io;
+    use tokio_threadpool::Builder;
+    use tokio_fs::File as TokioFile;
+
+    use futures::future::poll_fn;
+    use futures::sync::oneshot;
+    use futures::{Future, Sink, Stream};
 
     #[test]
     fn file_write() {
@@ -224,6 +232,41 @@ mod tests {
             &disk_repr[(3 + wal.payload.len())..disk_repr.len()],
             expected_padding
         );
+    }
+
+    #[test]
+    fn fs_write() {
+        let pool = Builder::new().pool_size(1).build();
+        let (tx, rx) = oneshot::channel();
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("wal.log");
+        let contents = b"hello world";
+        println!("path is {:?}", path);
+
+        pool.spawn({
+            let path = path.clone();
+            let contents = contents.clone();
+            TokioFile::create(path)
+                .and_then(|file| file.metadata())
+                .inspect(|&(_, ref metadata)| assert!(metadata.is_file()))
+                .and_then(move |(file, _)| io::write_all(file, contents))
+                .and_then(|(mut file, _)| poll_fn(move || file.poll_sync_all()))
+                .then(|res| {
+                    let _ = res.unwrap();
+                    tx.send(()).unwrap();
+                    Ok(())
+                })
+        });
+
+        rx.wait().unwrap();
+
+        let mut file = File::open(&path).unwrap();
+        let mut dst = vec![];
+        file.read_to_end(&mut dst).unwrap();
+        assert_eq!(dst, contents);
+
+        println!("At the end....");
     }
 
 }
