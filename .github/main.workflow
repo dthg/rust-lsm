@@ -1,4 +1,4 @@
-workflow "New workflow" {
+workflow "Build On Push" {
   on = "push"
   resolves = ["docker://rust"]
 }
