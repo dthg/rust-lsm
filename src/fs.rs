@@ -57,12 +57,12 @@ impl WalFile {
         // TODO: Make this take in base wal dir and do the rest from there
         Ok(WalFile {
             id: id,
-            path: wal_path.as_ref().to_path_buf()
+            path: wal_path.as_ref().to_path_buf(),
         })
     }
 
     // TODO: Make this async
-    fn write_segment(& mut self, segment: WalSegment) -> Result<(), Error> {
+    fn write_segment(&mut self, segment: WalSegment) -> Result<(), Error> {
         // TODO: Should this do some batching internally?
         self.write_segments(vec![segment])
     }

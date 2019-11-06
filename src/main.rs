@@ -9,7 +9,6 @@
 // extern crate enum_primitive_derive;
 // extern crate num_traits;
 // extern crate tracing;
-
 #[macro_use]
 use tracing::{event, Level};
 
@@ -104,7 +103,7 @@ pub trait SSTable {
 fn main() {
     let db_path = "./path/to/db";
     let db = DB::new(db_path).unwrap(); // Initialise a db with default params
-    // event!(Level::INFO, "my span");
+                                        // event!(Level::INFO, "my span");
 
     println!("Db info: {:?}", db.explain()); // list basic stats about the db. Support column families.
 
