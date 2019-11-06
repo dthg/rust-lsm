@@ -2,11 +2,9 @@ use std::io::prelude::*;
 use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
 
-use errors::Error;
+use crate::errors::Error;
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
-use num_traits::FromPrimitive;
-
 
 /// User tokio aio to do file writing
 /// Will mean that this is Linux only for now but fine for _now_
@@ -73,7 +71,7 @@ impl WalFile {
 }
 
 /// Indicates the type of the payload stored in a WalSegment.
-#[derive(Debug, Copy, Clone, PartialEq, Primitive)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
 enum SegmentType {
     /// First segment in a multi segment record.
@@ -84,6 +82,20 @@ enum SegmentType {
     EndSegment = 2,
     /// A segment containing a full record.
     FullSegment = 3,
+}
+
+impl SegmentType {
+    /// Construct a segment type from a u8
+    /// TODO: make less crappy
+    fn from_u8(data: u8) -> Option<SegmentType> {
+        match data {
+            0 => Some(SegmentType::StartSegment),
+            1 => Some(SegmentType::ContinuationSegment),
+            2 => Some(SegmentType::EndSegment),
+            3 => Some(SegmentType::FullSegment),
+            _ => None
+        }
+    }
 }
 
 /// Operations Tracked by the Write Ahead Log
@@ -162,9 +174,9 @@ mod tests {
 
     use byteorder::WriteBytesExt;
     use tempfile::tempdir;
+    use tokio_fs::File as TokioFile;
     use tokio_io::io;
     use tokio_threadpool::Builder;
-    use tokio_fs::File as TokioFile;
 
     use futures::future::poll_fn;
     use futures::sync::oneshot;
@@ -268,5 +280,4 @@ mod tests {
 
         println!("At the end....");
     }
-
 }

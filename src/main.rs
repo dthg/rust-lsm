@@ -1,15 +1,19 @@
-extern crate byteorder;
-extern crate futures;
+// extern crate byteorder;
+// extern crate futures;
 #[cfg(test)]
-extern crate tempfile;
-extern crate tokio;
-extern crate tokio_fs;
-extern crate tokio_io;
-extern crate tokio_threadpool;
+// extern crate tempfile;
+// extern crate tokio;
+// extern crate tokio_fs;
+// extern crate tokio_io;
+// extern crate tokio_threadpool;
+// extern crate enum_primitive_derive;
+// extern crate num_traits;
+// extern crate tracing;
 
 #[macro_use]
-extern crate enum_primitive_derive;
-extern crate num_traits;
+use tracing::{event, Level};
+
+use tracing::debug;
 
 pub mod db;
 pub mod errors;
@@ -99,6 +103,7 @@ pub trait SSTable {
 fn main() {
     let db_path = "./path/to/db";
     let db = DB::new(db_path).unwrap(); // Initialise a db with default params
+    // event!(Level::INFO, "my span");
 
     println!("Db info: {:?}", db.explain()); // list basic stats about the db. Support column families.
 

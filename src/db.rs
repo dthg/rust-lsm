@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use errors::Error;
+use crate::errors::Error;
 pub struct DB;
 
 #[derive(Debug)]
