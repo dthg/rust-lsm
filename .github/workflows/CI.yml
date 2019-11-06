@@ -52,46 +52,6 @@ jobs:
     - name: Run tests
       run: cargo test --all
 
-  features-stable:
-    # Feature flag tests that run on stable Rust.
-    needs: check
-    runs-on: ubuntu-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-      with:
-        rust-version: stable
-    - uses: actions/checkout@master
-    - name: "Test log support"
-      run: (cd tracing/test-log-support && cargo test)
-    - name: "Test static max level"
-      run: (cd tracing/test_static_max_level_features && cargo test)
-    - name: "Test tracing-core no-std support"
-      run: (cd tracing-core && cargo test --no-default-features)
-    - name: "Test tracing no-std support"
-      run: (cd tracing && cargo test --no-default-features)
-    - name: "Test tracing all features"
-      run: cargo test -p tracing --all-features
-
-  features-nightly:
-    # Feature flag tests for features that require nightly Rust.
-    needs: check
-    runs-on: ubuntu-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-      with:
-        rust-version: nightly
-    - uses: actions/checkout@master
-    - name: "Test tracing-futures std::future support"
-      run: (cd tracing-futures/test_std_future && cargo test)
-    - name: "Test tracing-futures tokio alpha support"
-      run: (cd tracing-futures && cargo check --no-default-features --features "tokio-alpha")
-    - name: "Test tracing-attributes async/await support"
-      run: (cd tracing/test_static_max_level_features && cargo test)
-    - name: "Test tracing-core no-std support"
-      run: (cd tracing-attributes/test_async_await && cargo test)
-    - name: "Test nightly-only examples"
-      run: (cd nightly-examples && cargo test)
-
   style:
     # Check style.
     needs: check
