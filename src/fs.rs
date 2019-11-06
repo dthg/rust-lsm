@@ -1,10 +1,9 @@
-use std::io::prelude::*;
 use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
 
 use crate::errors::Error;
 
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 /// User tokio aio to do file writing
 /// Will mean that this is Linux only for now but fine for _now_
@@ -38,11 +37,11 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 struct WalFile {
     id: u64,
     path: PathBuf,
-    segments: Vec<WalSegment>,
 }
 
 impl WalFile {
     const FILE_HEADER: u64 = 0x72757374796c736d; // rustylsm in ascii
+    const FILE_PREXIX: &'static str = "WAL";
 
     fn read_file(path: PathBuf) -> WalFile {
         unimplemented!("WalFile Read not yet implemented.");
@@ -52,21 +51,31 @@ impl WalFile {
     ///    ID is assumed to be unique. This write will check that the file
     ///    with `id` has not yet been written to, however it does not check past
     ///    that point. Weird spooky not fun things can happen in that case.
-    fn new_file<P: AsRef<Path>>(id: u64, wal_path: P) {
+    fn new_file<P: AsRef<Path>>(id: u64, wal_path: P) -> Result<WalFile, Error> {
         // TODO: make this accept any thing that is path like
-        unimplemented!("");
+        // TODO: This should be result type
+        // TODO: Make this take in base wal dir and do the rest from there
+        Ok(WalFile {
+            id: id,
+            path: wal_path.as_ref().to_path_buf()
+        })
     }
 
     // TODO: Make this async
-    fn write_segment(segment: WalSegment) -> Result<(), Error> {
+    fn write_segment(& mut self, segment: WalSegment) -> Result<(), Error> {
         // TODO: Should this do some batching internally?
-        unimplemented!("write to wal file not yet supported");
+        self.write_segments(vec![segment])
     }
 
     /// Bulk write of segments to wal file.
     /// Still not sure if I want to support his usecase. 🤔
-    fn write_segments(segments: Vec<WalSegment>) -> Result<(), Error> {
+    fn write_segments(&self, segments: Vec<WalSegment>) -> Result<(), Error> {
         unimplemented!("write to wal file not yet supported");
+    }
+
+    /// Load segments from wal file
+    fn load_segments(&self) -> Result<Vec<WalSegment>, Error> {
+        unimplemented!("wal file egmeng read not implemented yet");
     }
 }
 
@@ -75,13 +84,13 @@ impl WalFile {
 #[repr(u8)]
 enum SegmentType {
     /// First segment in a multi segment record.
-    StartSegment = 0,
+    Start = 0,
     /// Intermediate segment of a multi segment record
-    ContinuationSegment = 1,
+    Continuation = 1,
     /// Last segment in a multi segment record
-    EndSegment = 2,
+    End = 2,
     /// A segment containing a full record.
-    FullSegment = 3,
+    Full = 3,
 }
 
 impl SegmentType {
@@ -89,11 +98,11 @@ impl SegmentType {
     /// TODO: make less crappy
     fn from_u8(data: u8) -> Option<SegmentType> {
         match data {
-            0 => Some(SegmentType::StartSegment),
-            1 => Some(SegmentType::ContinuationSegment),
-            2 => Some(SegmentType::EndSegment),
-            3 => Some(SegmentType::FullSegment),
-            _ => None
+            0 => Some(SegmentType::Start),
+            1 => Some(SegmentType::Continuation),
+            2 => Some(SegmentType::End),
+            3 => Some(SegmentType::Full),
+            _ => None,
         }
     }
 }
@@ -169,6 +178,7 @@ mod tests {
     use super::*;
 
     use std::fs::File;
+    use std::io::prelude::*;
     use std::mem;
     use std::os::unix::prelude::FileExt;
 
@@ -196,7 +206,7 @@ mod tests {
 
     #[test]
     fn wal_segment_from_disk_repr() {
-        let seg_type = SegmentType::FullSegment;
+        let seg_type = SegmentType::Full;
         let seg_int = seg_type as u8;
         let payload = b"hello world foo bar baz bla bla bla bla bla".to_vec();
         let payload_len = payload.len() as u16;
@@ -212,7 +222,7 @@ mod tests {
 
         let seg = WalSegment::from_disk(&wrt).unwrap();
         println!("segment size is {:?}", mem::size_of::<WalSegment>());
-        assert_eq!(seg.segment_type, SegmentType::FullSegment);
+        assert_eq!(seg.segment_type, SegmentType::Full);
         assert_eq!(seg.padding, padding);
         assert_eq!(seg.payload, payload);
     }
@@ -221,7 +231,7 @@ mod tests {
     fn wal_segment_to_disk_repr() {
         let padding_len = WalSegment::MAX_BLOCK_SIZE - (3 + 6) as usize;
         let wal = WalSegment {
-            segment_type: SegmentType::FullSegment,
+            segment_type: SegmentType::Full,
             payload: b"WALL-E".to_vec(),
             padding: vec![0; padding_len],
         };
@@ -231,7 +241,7 @@ mod tests {
         assert_eq!(disk_repr.len(), WalSegment::MAX_BLOCK_SIZE);
 
         let mut expected: Vec<u8> = vec![];
-        expected.write_u8(SegmentType::FullSegment as u8).unwrap();
+        expected.write_u8(SegmentType::Full as u8).unwrap();
         expected
             .write_u16::<LittleEndian>(wal.payload.len() as u16)
             .unwrap();

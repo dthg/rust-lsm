@@ -41,7 +41,7 @@ pub struct TableConf {
 pub struct Table<M: MemTable, SS: SSTable> {
     conf: TableConf,
     mem_tables: Vec<M>,
-    ss_table: Vec<SS>, // Level 0 sstable keep in mem as optimization -- may come to regret this?
+    ss_table: SS, // Level 0 sstable keep in mem as optimization -- may come to regret this?
 }
 
 impl<M: MemTable, SS: SSTable> Table<M, SS> {
@@ -50,9 +50,10 @@ impl<M: MemTable, SS: SSTable> Table<M, SS> {
         unimplemented!("get_level not yet implemented");
     }
 
-    fn get<V: AsRef<Value>>(k: &Key) -> Option<V> {
-        None
+    fn get(&self, k: &Key) -> Option<&Value> {
+        self.ss_table.get(k)
     }
+
     fn put<K: AsRef<Key>, V: AsRef<Value>>(k: K, v: V) -> Result<(), Error> {
         unimplemented!("Table::put not implemented.")
     }
@@ -94,10 +95,10 @@ impl MemTable for HashMemTable {
 }
 
 pub trait SSTable {
-    fn get(k: &Key) -> Option<&Value>;
-    fn put(k: &Key, v: &Value) -> Result<(), Error>;
-    fn len() -> usize;
-    fn capacity() -> usize;
+    fn get(&self, k: &Key) -> Option<&Value>;
+    fn put(&mut self, k: &Key, v: &Value) -> Result<(), Error>;
+    fn len(&self) -> usize;
+    fn capacity(&self) -> usize;
 }
 
 fn main() {
@@ -107,7 +108,7 @@ fn main() {
 
     println!("Db info: {:?}", db.explain()); // list basic stats about the db. Support column families.
 
-    db.put("key".as_bytes(), "value".as_bytes());
+    db.put("key".as_bytes(), "value".as_bytes()).unwrap();
     assert!(db.get("key".as_bytes()) == Some("value".as_bytes().into()));
 
     println!("Hello, world!");
