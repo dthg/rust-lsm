@@ -43,7 +43,7 @@ impl WalFile {
     const FILE_HEADER: u64 = 0x72757374796c736d; // rustylsm in ascii
     const FILE_PREXIX: &'static str = "WAL";
 
-    fn read_file(path: PathBuf) -> WalFile {
+    fn read_file(_path: PathBuf) -> WalFile {
         unimplemented!("WalFile Read not yet implemented.");
     }
 
@@ -69,7 +69,7 @@ impl WalFile {
 
     /// Bulk write of segments to wal file.
     /// Still not sure if I want to support his usecase. 🤔
-    fn write_segments(&self, segments: Vec<WalSegment>) -> Result<(), Error> {
+    fn write_segments(&self, _segments: Vec<WalSegment>) -> Result<(), Error> {
         unimplemented!("write to wal file not yet supported");
     }
 

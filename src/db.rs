@@ -8,7 +8,7 @@ pub struct DBInfo;
 
 impl DB {
     /// Open or creat a data base at the specified location
-    pub fn new<P: AsRef<Path>>(p: P) -> Result<DB, Error> {
+    pub fn new<P: AsRef<Path>>(_p: P) -> Result<DB, Error> {
         unimplemented!("new method for db not yet implemented");
     }
 
@@ -18,15 +18,15 @@ impl DB {
         unimplemented!("explain not yet supported for db");
     }
 
-    pub fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+    pub fn get(&self, _key: &[u8]) -> Option<Vec<u8>> {
         unimplemented!("get not yet implemented");
     }
 
-    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<(), Error> {
+    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<(), Error> {
         unimplemented!("put not yet implemented");
     }
 
-    pub fn delete(&self, key: &[u8]) -> Option<Vec<u8>> {
+    pub fn delete(&self, _key: &[u8]) -> Option<Vec<u8>> {
         unimplemented!("delete not yet implemented");
     }
 

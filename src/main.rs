@@ -12,7 +12,7 @@
 #[macro_use]
 use tracing::{event, Level};
 
-use tracing::debug;
+
 
 pub mod db;
 pub mod errors;
@@ -45,7 +45,7 @@ pub struct Table<M: MemTable, SS: SSTable> {
 
 impl<M: MemTable, SS: SSTable> Table<M, SS> {
     ///Get the SSTable list at the specified level
-    fn get_level(&self, level: u32) -> Result<Vec<SS>, Error> {
+    fn get_level(&self, _level: u32) -> Result<Vec<SS>, Error> {
         unimplemented!("get_level not yet implemented");
     }
 
@@ -53,7 +53,7 @@ impl<M: MemTable, SS: SSTable> Table<M, SS> {
         self.ss_table.get(k)
     }
 
-    fn put<K: AsRef<Key>, V: AsRef<Value>>(k: K, v: V) -> Result<(), Error> {
+    fn put<K: AsRef<Key>, V: AsRef<Value>>(_k: K, _v: V) -> Result<(), Error> {
         unimplemented!("Table::put not implemented.")
     }
 }
