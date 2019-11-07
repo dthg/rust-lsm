@@ -12,8 +12,6 @@
 #[macro_use]
 use tracing::{event, Level};
 
-
-
 pub mod db;
 pub mod errors;
 pub mod fs;
