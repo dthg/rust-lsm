@@ -105,8 +105,9 @@ fn main() {
 
     println!("Db info: {:?}", db.explain()); // list basic stats about the db. Support column families.
 
-    db.put("key".as_bytes(), "value".as_bytes()).unwrap();
-    assert!(db.get("key".as_bytes()) == Some("value".as_bytes().into()));
+    //db.put("key".as_bytes(), "value".as_bytes()).unwrap();
+    //assert!(db.get("key".as_bytes()) == Some("value".as_bytes().into()));
 
-    println!("Hello, world!");
+    println!("Deleting db at path {}", db_path);
+    db.delete_db().unwrap();
 }
