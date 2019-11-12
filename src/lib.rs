@@ -1,8 +1,8 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub enum Error {
@@ -12,7 +12,7 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub struct Db {
-    data: BTreeMap<Vec<u8>, Vec<u8>>
+    data: BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
 const DEFAULT_PATH: &str = "default.lsm";
@@ -63,9 +63,8 @@ impl Config {
 impl Db {
     pub fn open<P: AsRef<Path>>(path: P) -> Db {
         Db {
-            data: BTreeMap::new()
+            data: BTreeMap::new(),
         }
-
     }
 
     pub fn insert<K, V>(&mut self, key: K, value: V) -> Result<()>
@@ -73,8 +72,9 @@ impl Db {
         K: AsRef<[u8]>,
         V: AsRef<[u8]>,
     {
-        self.data.insert(key.as_ref().to_vec(), value.as_ref().to_vec());
-            Ok(())
+        self.data
+            .insert(key.as_ref().to_vec(), value.as_ref().to_vec());
+        Ok(())
     }
 
     pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<&Vec<u8>>> {
